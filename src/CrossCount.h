@@ -48,7 +48,6 @@ class CrossCount{
     // muon_track_spin_patterns_summed_[spin_pat]
     TH1F* muon_track_spin_patterns_summed_[5];
 
-    TCanvas* crossing_count;
     TCanvas* spin_pattern_count;
     std::map<int,std::vector<MuonData> > muons_;
     std::map<int,SpinData> spin_data_;

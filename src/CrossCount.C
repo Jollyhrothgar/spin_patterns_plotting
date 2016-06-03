@@ -7,11 +7,15 @@
 #include<memory>
 #include<vector>
 
+#include "TROOT.h"
+#include "TStyle.h"
 #include "TObject.h"
+#include "TCanvas.h"
 #include "TFile.h"
 #include "TH1F.h"
 #include "TH2F.h"
 #include "TTree.h"
+#include "TColor.h"
 
 CrossCount::CrossCount(){
 	std::cout << "CrossCount instantiated at" << this << std::endl;
@@ -110,7 +114,7 @@ int CrossCount::AddSpinDatabaseData(const std::string& spin_data_base_name) {
     }
 
     if(data.bunch_pol.size() != 120) {
-      std::cout << "not enough spin data" << std::endl;
+      std::cout << run_number << " not enough spin data" << std::endl;
       continue;
     }
     // exactly one entry per run
@@ -135,17 +139,40 @@ int CrossCount::SaveFigures(const std::string& out_dir){
   TFile * out_file = new TFile(name,"RECREATE");
   out_file->cd();
   if(state_["MUON_DATA_READY"]) {
+    TCanvas* crossing_canvas = new TCanvas("crossing_canvas","Crossing Count",1200,1200);
+    crossing_canvas->Divide(2,2);
+    int canvas_counter = 1;
     for(int i = 0; i < 2; i++){
       for(int j = 0; j < 2; j++){
         cross_count_[i][j]->Write();
+        crossing_canvas->cd(canvas_counter);
+        gStyle->SetOptStat(kFALSE);
+        gROOT->ForceStyle();
+        cross_count_[i][j]->UseCurrentStyle();
+        cross_count_[i][j]->DrawCopy("colz");
+        canvas_counter++;
       }
     }
+    crossing_canvas->Write();
     cross_count_sum_->Write();
+    delete crossing_canvas;
   }
   if(state_["SPIN_DATABASE_READY"]){
+    TCanvas* spin_pat = new TCanvas("spin_patterns","Spin Patterns",1000,1000);
+    spin_patterns_[0]->Draw();
     for(int i = 0; i < 5; i++){
       spin_patterns_[i]->Write();
+      gStyle->SetOptStat(kFALSE);
+      gStyle->SetPadLeftMargin(0.2);
+      gStyle->SetPadBottomMargin(0.2);
+      gROOT->ForceStyle();
+      spin_patterns_[i]->UseCurrentStyle();
+      spin_patterns_[i]->SetFillColorAlpha(i+2,0.35);
+      spin_patterns_[i]->Draw("same");
     }
+    spin_pat->Update();
+    spin_pat->Write();
+    delete spin_pat;
   }
   if(state_["MUON_DATA_READY"] && state_["SPIN_DATABASE_READY"]) {
     for(int i = 0; i < 5; i++){
@@ -267,6 +294,9 @@ int CrossCount::Run(){
         } else {
           charge_i = 0;
         }
+        
+        // Turn on to look at signal region
+        // if (d.wness < 0.95) continue;
 
         if(d.pz > 0){
           arm_i = 1;
